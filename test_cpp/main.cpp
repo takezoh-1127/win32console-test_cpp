@@ -4,9 +4,12 @@
 #include <random>
 #include <array>
 #include <vector>
+#include <memory>
+#include <cassert>
 
 // C++11
 using int32 = int;
+//using int32 = short;
 
 // C++98
 //typedef int int32
@@ -16,6 +19,10 @@ using func = void(*)(int);
 
 // C++98
 //typedef void(*func)(int)
+
+
+//static_assert(sizeof(int32) == 2,"");
+static_assert(sizeof(int32) == 4, "error : int size is not 4");
 
 #ifndef PI
 	#define PI	(3.14f)
@@ -163,6 +170,30 @@ namespace
 		return ((i % 2) != 0);
 	}
 }
+
+
+class Enemy
+{
+public:
+	Enemy()
+		: HP(100)
+		, attackPower(10)
+	{
+		printf("### Enemy::Enemy()\n");
+	}
+
+	~Enemy()
+	{
+		printf("### Enemy::~Enemy()\n");
+	}
+
+	int GetHP() const { return HP; }
+
+private:
+	int HP;
+	int attackPower;
+};
+
 
 int main()
 {
@@ -339,6 +370,104 @@ int main()
 			printf("### count odd : [%d]\n", count);
 		}
 	}
+
+	// shared_ptrのテスト.
+	{
+		std::shared_ptr<Enemy> pp;
+
+		{
+			printf("### new Enemy\n");
+
+			// この書き方はダメ？.
+			//std::shared_ptr<Enemy> p = new Enemy();
+
+			std::shared_ptr<Enemy> p(new Enemy());
+			//std::shared_ptr<Enemy> p = std::make_shared<Enemy>();
+
+			pp = p;
+
+			printf("### scope end\n");
+		}
+
+		printf("### scope end\n");
+	}
+
+	{
+		std::weak_ptr<Enemy> wp;
+
+		{
+			// newしたshared_ptrは一つのみにする.
+			// それ以外で参照、保持したい場合はweak_ptrを使う.
+			std::shared_ptr<Enemy> sp(new Enemy);
+
+			wp = sp;
+
+			// wptrではアクセスできない.
+			//auto hp = wp->GetHP();
+
+			if (wp.expired())
+			{
+				// 期限切れ（つまりは無効なポインタ）.
+				printf("### wp expired.\n");
+			}
+			else
+			{
+				// 期限切れではない（つまり有効なポインタ）.
+				printf("### wp not expired.\n");
+
+				auto p = wp.lock();
+
+				if (p)
+				{
+					auto hp = p->GetHP();
+
+					printf("### enemy hp : [%d]\n", hp);
+				}
+			}
+		}
+		
+		if (wp.expired())
+		{
+			printf("### wp expired.\n");
+
+			auto p = wp.lock();
+
+			// shared_ptrを取得して無効な場合はnullptrになる.
+			//assert(p);
+
+			if (p)
+			{
+				printf("### wptr is not nullptr\n");
+			}
+			else
+			{
+				printf("### wptr is nullptr\n");
+			}
+		}
+		else
+		{
+			printf("### wp not expired.\n");
+		}
+	}
+
+	{
+		std::array<int, 5> arr = { 5,3,6,8,2 };
+
+		std::sort(arr.begin(), arr.end());
+
+		for (auto i : arr)
+		{
+			printf("   i:[%d]\n", i);
+		}
+	}
+
+#if 0
+	{
+		int* p = nullptr;
+
+		assert(p);
+	}
+#endif
 
 	return 0;
 }

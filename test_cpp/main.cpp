@@ -14,6 +14,8 @@ using int32 = int;
 // C++98
 //typedef int int32
 
+using uint8 = unsigned char;
+
 // C++11
 using func = void(*)(int);
 
@@ -21,8 +23,49 @@ using func = void(*)(int);
 //typedef void(*func)(int)
 
 
+static_assert(sizeof(uint8) == 1, "ERROR : uint8 size is not 1");
 //static_assert(sizeof(int32) == 2,"");
-static_assert(sizeof(int32) == 4, "error : int size is not 4");
+static_assert(sizeof(int32) == 4, "ERROR : int32 size is not 4");
+
+static_assert(std::is_pod<int32>::value, "ERROR : int32 is not POD");
+
+namespace xe
+{
+
+	typedef unsigned int uint32;
+
+	using uint16 = unsigned short;
+
+	namespace math
+	{
+		float DegreeToRadian(float const& deg) { return 0.0f; }
+	}
+
+	namespace Math
+	{
+		float DegreeToRadian(float const& deg) { return 0.0f; }
+	}
+}
+
+namespace Xe
+{
+	using uint16 = unsigned short;
+
+	namespace Math
+	{
+		float DegreeToRadian(float const& deg) { return 0.0f; }
+	}
+}
+
+namespace XE
+{
+	using uint16 = unsigned short;
+
+	namespace Math
+	{
+		float DegreeToRadian(float const& deg) { return 0.0f; }
+	}
+}
 
 #ifndef PI
 	#define PI	(3.14f)
@@ -149,6 +192,15 @@ enum class Team
 	White,
 };
 
+enum class Palette : uint8
+{
+	Red,
+	Green,
+	Blue,
+
+	//Max = 0xffffffff,
+};
+
 enum class Attribute
 {
 	Fire,
@@ -194,6 +246,29 @@ private:
 	int attackPower;
 };
 
+struct HogeHoge
+{
+	int a;
+};
+
+
+class Hoge
+{
+	// コピーコンストラクタを無効.
+	Hoge(const Hoge&) = delete;
+	// 代入演算子を無効.
+	Hoge operator=(Hoge&) = delete;
+};
+
+// C++98
+// privateにして無効にしていた.
+//class Hoge
+//{
+//private:
+	// コピーコンストラクタを無効.
+	//Hoge(const Hoge&) = delete;
+//};
+
 
 int main()
 {
@@ -208,6 +283,35 @@ int main()
 	//ATLTRACE("### trace test4.\n");
 
 	//_RPTN(_CRT_WARNING, "### trace test2.\n");
+
+	{
+		// typedefでもnamespaceで括られているときはxe::を付ける必要がある.
+		//uint32 ui32 = 0;
+		xe::uint32 ui32 = 0;
+
+		//uint16 ui16 = 0;
+		xe::uint16 ui16 = 0;
+
+		{
+			float rad = xe::math::DegreeToRadian(90.0f);
+		}
+
+		{
+			float rad = xe::Math::DegreeToRadian(90.0f);
+		}
+	}
+
+	{
+		Xe::uint16 ui16 = 0;
+
+		float rad = Xe::Math::DegreeToRadian(90.0f);
+	}
+
+	{
+		XE::uint16 ui16 = 0;
+
+		float rad = XE::Math::DegreeToRadian(90.0f);
+	}
 
 	{
 		// defineはnamespaceは関係無い.
@@ -292,6 +396,7 @@ int main()
 		}
 		
 		// 要素外にアクセスするとランタイムでエラーになる.
+		// releaseビルドだとエラーにならない？.
 		//ar[10] = 100;
 	}
 
@@ -381,7 +486,13 @@ int main()
 			// この書き方はダメ？.
 			//std::shared_ptr<Enemy> p = new Enemy();
 
-			std::shared_ptr<Enemy> p(new Enemy());
+			// shared_ptrにセットする場合はコンストラクタで渡すようにする.
+			//std::shared_ptr<Enemy> p(new Enemy());
+
+			//
+			std::shared_ptr<Enemy> p = std::shared_ptr<Enemy>(new Enemy());
+
+			// newを直接書かない方法が推奨されている.
 			//std::shared_ptr<Enemy> p = std::make_shared<Enemy>();
 
 			pp = p;
@@ -465,9 +576,41 @@ int main()
 	{
 		int* p = nullptr;
 
+		// releaseビルドでは無効になる.
 		assert(p);
 	}
 #endif
 
+	// POD.
+	{
+#if 1
+		if (std::is_pod<int32>::value)
+		{
+			printf("### int32 is POD.\n");
+		}
+		else
+		{
+			printf("### int32 is not POD.\n");
+		}
+#endif
+
+		if (std::is_pod<HogeHoge>::value)
+		{
+			printf("### HogeHoge is POD.\n");
+		}
+		else
+		{
+			printf("### HogeHoge is not POD.\n");
+		}
+
+		if (std::is_pod<Enemy>::value)
+		{
+			printf("### Enemy is POD.\n");
+		}
+		else
+		{
+			printf("### Enemy is not POD.\n");
+		}
+	}
 	return 0;
 }

@@ -270,6 +270,40 @@ class Hoge
 //};
 
 
+namespace NS
+{
+	class C {};
+	void f(C) {}
+
+
+	class Integer
+	{
+	};
+
+	Integer operator+(Integer const &, Integer const&)
+	{
+		return Integer();
+	}
+}
+
+namespace original_lvalue_1
+{
+
+	template <typename T>
+	constexpr bool is_lvalue(T&&) {
+		return std::is_lvalue_reference<T>{};
+	}
+
+}
+
+namespace original_lvalue_2
+{
+
+	template<class T>
+	constexpr std::is_lvalue_reference<T&&>
+		is_lvalue(T&&) { return{}; }
+}
+
 int main()
 {
 	printf("### hello world.\n");
@@ -612,5 +646,258 @@ int main()
 			printf("### Enemy is not POD.\n");
 		}
 	}
+
+	// リファレンス.
+	{
+		int i = 0;
+
+		// 左辺値参照.(left value reference)
+		int& lvr = i;
+		// 右辺値参照.(right value reference)
+		//int&& rvr = i;	// ←ビルドエラー.
+		int&& rvr = static_cast<int&&>(i);
+
+		lvr = 10;
+
+		printf("### lvr:[%d][%d]\n", lvr, i);
+
+		rvr = 20;
+
+		printf("### rvr:[%d][%d]\n", rvr, i);
+	}
+
+	// ADL(Argument-dependent name lookup).
+	{
+		NS::C c;
+
+		f(c);	// NS::fが呼ばれる（というか見つかる）.
+	}
+
+	{
+		NS::Integer x;
+		NS::Integer y;
+
+		// ADLがない場合はoperator+()が見つからないのでエラーになってしまう.
+		y = x + x;
+	}
+
+	// const int とint constの違い.
+	{
+		int hoge = 10;
+		int hoge2 = 100;
+
+		int * p0 = &hoge;
+		const int * p1 = &hoge;		// p1の指示先を書き換えることはできないが、p1の指示先自体は変更可能.
+		int const * p2 = &hoge;		// p1と同じ.
+		int * const p3 = &hoge;		// p3の指示先を書き換えることはできるが、p3の指示先自体は変更不可能.
+
+		// p0
+		printf("### p0:[%p][%d]\n", p0, *p0);
+
+		// ポインタの中身の変更は可能.
+		*p0 = 20;
+
+		printf("### p0:[%p][%d]\n", p0, *p0);
+
+		hoge = 10;
+
+		printf("### p0:[%p][%d]\n", p0, *p0);
+
+		// p1
+		printf("### p1:[%p][%d]\n", p1, *p1);
+
+		// コンパイルエラー.
+		// ポインタの中身の変更は不可能.
+		//*p1 = 20;
+		// const外せば変更は可能になるが今回の趣旨とは違う.
+		//*(const_cast<int*>(p1)) = 20;
+
+		printf("### p1:[%p][%d]\n", p1, *p1);
+
+		hoge = 10;
+
+		// 参照先の変更は可能.
+		p1 = &hoge2;
+
+		printf("### p1:[%p][%d]\n", p1, *p1);
+
+		// コンパイルエラー.
+		// ポインタの中身は変更不可能.
+		//*p1 = 200;
+
+		// p2
+		// コンパイルエラー.
+		//*p2 = 20;
+
+		// 参照先の変更は可能.
+		p2 = &hoge2;
+
+		// p3
+
+		printf("### p1:[%p][%d]\n", p3, *p3);
+
+		// ポインタの中身を変更は可能.
+		*p3 = 20;
+
+		printf("### p1:[%p][%d]\n", p3, *p3);
+
+		// コンパイルエラー.
+		// 参照先の変更は不可能.
+		//p3 = &hoge2;
+	}
+
+	// lvalue,rvalue
+	{
+		{
+			printf("### original_lvalue_1\n");
+
+			int x = 0;
+
+			if (original_lvalue_1::is_lvalue(x))
+			{
+				printf("   x is lvalue.\n");
+			}
+			else
+			{
+				printf("   x is not lvalue.\n");
+			}
+
+			if (original_lvalue_1::is_lvalue(10))
+			{
+				printf("   10 is lvalue.\n");
+			}
+			else
+			{
+				printf("   10 is not lvalue.\n");
+			}
+
+			std::string a("Hello");
+
+			if (original_lvalue_1::is_lvalue(a))
+			{
+				printf("   a is lvalue.\n");
+			}
+			else
+			{
+				printf("   a is not lvalue.\n");
+			}
+		}
+
+
+		{
+			printf("### original_lvalue_2\n");
+
+			int x = 0;
+
+			if (original_lvalue_2::is_lvalue(x))
+			{
+				printf("   x is lvalue.\n");
+			}
+			else
+			{
+				printf("   x is not lvalue.\n");
+			}
+
+			if (original_lvalue_2::is_lvalue(10))
+			{
+				printf("   10 is lvalue.\n");
+			}
+			else
+			{
+				printf("   10 is not lvalue.\n");
+			}
+
+			// 型はコンパイルエラー.
+#if 0
+			if (original_lvalue_2::is_lvalue(int))
+			{
+				printf("   int is lvalue.\n");
+			}
+			else
+			{
+				printf("   int is not lvalue.\n");
+			}
+#endif
+
+			std::string a("Hello");
+
+			if (original_lvalue_2::is_lvalue(a))
+			{
+				printf("   a is lvalue.\n");
+			}
+			else
+			{
+				printf("   a is not lvalue.\n");
+			}
+		}
+
+		// is_lvalueを独自に実装している人とかいるがこれでも判定できる.
+		{
+			printf("### lvalue\n");
+
+			int x = 0;
+
+			// decltype((x))で()で括らないとダメ.
+			// decltype(x)だと判定が違ってきてしまう.
+			if (std::is_lvalue_reference<decltype((x))>::value)
+			{
+				printf("   x is lvalue.\n");
+			}
+			else
+			{
+				printf("   x is not lvalue.\n");
+			}
+
+			if (std::is_lvalue_reference<decltype((10))>::value)
+			{
+				printf("   10 is lvalue.\n");
+			}
+			else
+			{
+				printf("   10 is not lvalue.\n");
+			}
+
+			// 型はコンパイルエラー.
+#if 0
+			if (std::is_lvalue_reference<decltype((int))>::value)
+			{
+				printf("   int is lvalue.\n");
+			}
+			else
+			{
+				printf("   int is not lvalue.\n");
+			}
+#endif
+
+			std::string a("Hello");
+
+			if (std::is_lvalue_reference<decltype((a))>::value)
+			{
+				printf("   a is lvalue.\n");
+			}
+			else
+			{
+				printf("   a is not lvalue.\n");
+			}
+
+			//std::is_lvalue_reference<decltype((std::string()))>::value;
+		}
+		
+	}
+
+	// lvalue reference, rvalue reference
+	{
+		int x = 0;
+
+		if (std::is_lvalue_reference<int>::value)
+		{
+			printf("   int is lvalue reference.\n");
+		}
+		else
+		{
+			printf("   int is not lvalue reference.\n");
+		}
+	}
+
 	return 0;
 }

@@ -304,6 +304,10 @@ namespace original_lvalue_2
 		is_lvalue(T&&) { return{}; }
 }
 
+struct X{};
+
+int f(){ return 0; }
+
 int main()
 {
 	printf("### hello world.\n");
@@ -687,9 +691,10 @@ int main()
 		int hoge2 = 100;
 
 		int * p0 = &hoge;
-		const int * p1 = &hoge;		// p1の指示先を書き換えることはできないが、p1の指示先自体は変更可能.
-		int const * p2 = &hoge;		// p1と同じ.
-		int * const p3 = &hoge;		// p3の指示先を書き換えることはできるが、p3の指示先自体は変更不可能.
+		const int * p1 = &hoge;			// p1の指示先を書き換えることはできないが、p1の指示先自体は変更可能.
+		int const * p2 = &hoge;			// p1と同じ.
+		int * const p3 = &hoge;			// p3の指示先を書き換えることはできるが、p3の指示先自体は変更不可能.
+		int const * const p4 = &hoge;
 
 		// p0
 		printf("### p0:[%p][%d]\n", p0, *p0);
@@ -734,16 +739,25 @@ int main()
 
 		// p3
 
-		printf("### p1:[%p][%d]\n", p3, *p3);
+		printf("### p3:[%p][%d]\n", p3, *p3);
 
 		// ポインタの中身を変更は可能.
 		*p3 = 20;
 
-		printf("### p1:[%p][%d]\n", p3, *p3);
+		printf("### p3:[%p][%d]\n", p3, *p3);
 
 		// コンパイルエラー.
 		// 参照先の変更は不可能.
 		//p3 = &hoge2;
+
+		// p4
+		// コンパイルエラー.
+		//*p4 = 20;
+
+		// コンパイルエラー.
+		//p4 = &hoge2;
+
+		printf("### p4:[%p][%d]\n", p4, *p4);
 	}
 
 	// lvalue,rvalue
@@ -835,17 +849,17 @@ int main()
 		{
 			printf("### lvalue\n");
 
-			int x = 0;
+			int i = 0;
 
-			// decltype((x))で()で括らないとダメ.
-			// decltype(x)だと判定が違ってきてしまう.
-			if (std::is_lvalue_reference<decltype((x))>::value)
+			// decltype((i))で()で括らないとダメ.
+			// decltype(i)だと判定が違ってきてしまう.
+			if (std::is_lvalue_reference<decltype((i))>::value)
 			{
-				printf("   x is lvalue.\n");
+				printf("   i is lvalue.\n");
 			}
 			else
 			{
-				printf("   x is not lvalue.\n");
+				printf("   i is not lvalue.\n");
 			}
 
 			if (std::is_lvalue_reference<decltype((10))>::value)
@@ -869,6 +883,27 @@ int main()
 			}
 #endif
 
+
+			X x;
+
+			if (std::is_lvalue_reference<decltype((x))>::value)
+			{
+				printf("   x is lvalue.\n");
+			}
+			else
+			{
+				printf("   x is not lvalue.\n");
+			}
+
+			if (std::is_lvalue_reference<decltype((X()))>::value)
+			{
+				printf("   X() is lvalue.\n");
+			}
+			else
+			{
+				printf("   X() is not lvalue.\n");
+			}
+
 			std::string a("Hello");
 
 			if (std::is_lvalue_reference<decltype((a))>::value)
@@ -881,6 +916,15 @@ int main()
 			}
 
 			//std::is_lvalue_reference<decltype((std::string()))>::value;
+
+			if (std::is_lvalue_reference<decltype((f()))>::value)
+			{
+				printf("   f() is lvalue.\n");
+			}
+			else
+			{
+				printf("   f() is not lvalue.\n");
+			}
 		}
 		
 	}

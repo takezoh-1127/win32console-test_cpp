@@ -83,7 +83,7 @@ const float PI = 3.14f;
 
 }
 
-
+constexpr float HalfPi() { return (3.14f * 0.5f); }
 constexpr float DegPerRad() { return (180.0f / 3.14f); }
 
 //const float DegPerRad = (180.0f / 3.14f);
@@ -254,6 +254,7 @@ struct HogeHoge
 
 class Hoge
 {
+public:
 	// コピーコンストラクタを無効.
 	Hoge(const Hoge&) = delete;
 	// 代入演算子を無効.
@@ -266,7 +267,7 @@ class Hoge
 //{
 //private:
 	// コピーコンストラクタを無効.
-	//Hoge(const Hoge&) = delete;
+	//Hoge(const Hoge&);
 //};
 
 
@@ -307,6 +308,108 @@ namespace original_lvalue_2
 struct X{};
 
 int f(){ return 0; }
+
+
+// オーバーロード.
+void ol_func()
+{
+	printf("### [%s]\n",__FUNCSIG__);
+}
+
+void ol_func(int i)
+{
+	printf("### [%s]:[%d]\n", __FUNCSIG__, i);
+}
+
+#if 0
+// 戻り値だけ異なるオーバーロードはコンパイルエラー.
+int ol_func(int i)
+{
+	printf("### [%s]:[%d]\n", __FUNCSIG__, i);
+
+	return i;
+}
+#endif
+
+void ol_func(int i1, int i2)
+{
+	printf("### [%s]:[%d][%d]\n", __FUNCSIG__, i1, i2);
+}
+
+void ol_func(float f)
+{
+	printf("### [%s]:[%f]\n", __FUNCSIG__, f);
+}
+
+void ol_func(float f1, float f2)
+{
+	printf("### [%s]:[%f][%f]\n", __FUNCSIG__, f1, f2);
+}
+
+// 戻り値の型が違っても大丈夫.
+int ol_add(int a, int b)
+{
+	printf("### [%s]:[%d][%d]\n", __FUNCSIG__, a, b);
+	return a + b;
+}
+
+float ol_add(float a, float b)
+{
+	printf("### [%s]:[%f][%f]\n", __FUNCSIG__, a, b);
+	return a + b;
+}
+
+bool ol_compera(int a, int b)
+{
+	printf("### [%s]:[%d][%d]\n", __FUNCSIG__, a, b);
+	return a == b;
+}
+
+bool ol_compera(float a, float b)
+{
+	printf("### [%s]:[%f][%f]\n", __FUNCSIG__, a, b);
+	return a == b;
+}
+
+// ポインタ、参照はconst、非constそれぞれでオーバーロードできる.
+void ol_funcp(int *p)
+{
+	printf("### [%s]\n", __FUNCSIG__);
+}
+
+void ol_funcp(const int *p)
+{
+	printf("### [%s]\n", __FUNCSIG__);
+}
+
+void ol_funcp(int &r)
+{
+	printf("### [%s]\n", __FUNCSIG__);
+}
+
+void ol_funcp(const int &r)
+{
+	printf("### [%s]\n", __FUNCSIG__);
+}
+
+#if 0
+// ポインタ、参照ではない型があるとコンパイルエラーになる.
+void ol_funcp(int r)
+{
+	printf("### [%s]\n", __FUNCSIG__);
+}
+#endif
+
+
+// というのが大変なのでtemplateがある.
+template<class T>
+T template_add(T a, T b)
+{
+	//printf("### [%s]\n", __FUNCSIG__);
+	std::cout << "### [" << __FUNCSIG__  << "]:[" << a << "][" << b << "]" << std::endl;
+
+	return a + b;
+}
 
 int main()
 {
@@ -941,6 +1044,57 @@ int main()
 		{
 			printf("   int is not lvalue reference.\n");
 		}
+	}
+
+
+	// オーバーロード.
+	{
+		ol_func();
+
+		ol_func(10);
+
+		ol_func(100,200);
+
+		ol_func(10.0f);
+
+		ol_func(100.0f,200.0f);
+
+		// 引数の型が異なるとコンパイルエラー.
+		//ol_func(100.0f, 200);
+
+		int i = ol_add(100, 200);
+		float f = ol_add(100.0f, 200.0f);
+
+		if (ol_compera(100, 100))
+		{
+
+		}
+
+		if (ol_compera(100.0f, 100.0f))
+		{
+
+		}
+
+		int* p = &i;
+		const int* cp = &i;
+		const int& cr = i;
+
+		ol_funcp(&i);
+
+		ol_funcp(p);
+		ol_funcp(cp);
+
+		ol_funcp(i);
+		ol_funcp(cr);
+	}
+
+	// template
+	{
+		int i = template_add(10, 20);
+		float f = template_add(100.0f, 200.0f);
+
+		// 引数の型が異なるとコンパイルエラー.
+		//float f = template_add(100.0f, 200);
 	}
 
 	return 0;
